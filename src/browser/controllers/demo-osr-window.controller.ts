@@ -26,29 +26,33 @@ export class DemoOSRWindowController {
    *
    */
   public async createAndShow(showDevTools: boolean) {
+    // Get screen dimensions
+    const { screen } = require('electron');
+    const primaryDisplay = screen.getPrimaryDisplay();
+    const { width: screenWidth, height: screenHeight } = primaryDisplay.workAreaSize;
+    
+    // Calculate position: right edge, vertically centered
+    const windowWidth = 384;
+    const windowHeight = 336;
+    const x = screenWidth - windowWidth + 385; // Right edge
+    const y = Math.floor((screenHeight - windowHeight) / 2) + 110; // Vertically centered
+
     // name should be unique
     const options: OverlayWindowOptions = {
-      name: 'osrWindow-' + Math.floor(Math.random() * 1000),
-      height: 700,
-      width: 500,
+      name: 'overlay',
+      height: windowHeight,
+      width: windowWidth,
       show: true,
       transparent: true,
-      resizable: true, // resizable borders
+      resizable: false, 
       webPreferences: {
         devTools: showDevTools,
         nodeIntegration: true,
         contextIsolation: false,
-      },
+      }, 
+      x: x,
+      y: y,
     };
-
-    // random positions
-    const activeGame = this.overlayService.overlayApi.getActiveGameInfo();
-    const gameWindowInfo = activeGame?.gameWindowInfo;
-
-    const screenWidth = gameWindowInfo?.size.width || 500;
-    options.x = this.randomInteger(0, screenWidth - options.width);
-    options.y = 10;
-
     this.overlayWindow = await this.overlayService.createNewOsrWindow(
       options,
     );
