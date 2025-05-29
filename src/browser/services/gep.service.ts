@@ -35,7 +35,7 @@ export class GameEventsService extends EventEmitter {
   public async setRequiredFeaturesForAllSupportedGames() {
     await Promise.all(this.gepGamesId.map(async (gameId) => {
       this.emit('log', `set-required-feature for: ${gameId}`);
-      await this.gepApi.setRequiredFeatures(gameId, null);
+      await this.gepApi.setRequiredFeatures(gameId, ['matchState']);
     }));
   }
 

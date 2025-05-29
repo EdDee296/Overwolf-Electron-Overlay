@@ -29,7 +29,7 @@ export class MainWindowController {
 
     gepService.on('log', this.printLogMessage.bind(this));
     overlayService.on('log', this.printLogMessage.bind(this));
-
+    overlayService.on('auto-create-osr', this.onGameInjected.bind(this));
     overlayHotkeysService.on('log', this.printLogMessage.bind(this));
 
     owElectronApp.overwolf.packages.on('crashed', (e, ...args) => {
@@ -63,6 +63,11 @@ export class MainWindowController {
       packageName,
       ...args
     );
+  }
+
+  private async onGameInjected(gameInfo: any) {
+    this.printLogMessage('Auto-creating OSR window for injected game:', gameInfo.name);
+    await this.createOSRDemoWindow();
   }
 
   /**

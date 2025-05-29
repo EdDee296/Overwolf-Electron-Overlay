@@ -114,6 +114,7 @@ export class OverlayService extends EventEmitter {
 
     this.overlayApi.on('game-injected', (gameInfo) => {
       this.log('new game injected!', gameInfo);
+      this.emit('auto-create-osr', gameInfo);
     });
 
     this.overlayApi.on('game-focus-changed', (window, game, focus) => {
