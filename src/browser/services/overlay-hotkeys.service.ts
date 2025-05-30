@@ -64,10 +64,6 @@ export class OverlayHotkeysService extends EventEmitter {
 
     }, (hotkey, state) => {
       console.info(`on hotkey '${hotkey.name}' `, state);
-
-      if (state == 'pressed') {
-        this.resetOSRPassthrough();
-      }
     })
 
     // reset zOrder

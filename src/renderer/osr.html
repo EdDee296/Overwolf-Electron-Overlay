@@ -1,9 +1,7 @@
-<html>
-
 <head>
     <style>
         body {
-            background-color: rgba(43, 49, 49, 0.68);
+            background-color: rgba(43, 49, 49, 0.1);
             margin: 0;
             padding: 0;
             overflow: hidden;
@@ -11,64 +9,69 @@
             user-select: none;
             font-family: Arial, sans-serif;
         }
-
-        #title-bar {
-            height: 30px;
-            background-color: #333;
-            color: #fff;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 0 10px;
-        }
-
-        #title-bar .title {
-            font-size: 14px;
-            user-select: none;
-            -webkit-app-region: drag;
-            cursor: move;
-            width: 90%;
-        }
-
-        #title-bar .buttons {
-            display: flex;
-        }
-
-        #title-bar .button {
-            width: 15px;
-            height: 15px;
-            margin: 0 3px;
-            cursor: pointer;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            user-select: none;
-        }
-
-        #title-bar .button:hover {
-            background-color: #ddd;
-        }
-
         #content {
             padding: 20px;
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: center;
+            justify-content: flex-start;
             height: 300px;
+            overflow: hidden;
         }
 
-        #size-display {
-            font-size: 24px;
+        #connection-status {
+            font-size: 14px;
             margin-bottom: 20px;
+            text-align: center;
+            color: #888;
+        }
+
+        #message-queue {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+
+                .message-item {
+            background-color: rgba(85, 85, 85, 0.9);
+            border: 1px solid #666;
+            border-radius: 8px;
+            padding: 10px 15px;
+            min-width: 200px;
+            max-width: 300px;
+            opacity: 1;
+            transform: translateY(0);
+            transition: all 0.3s ease-in-out;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
             text-align: center;
         }
 
-        #position-display {
-            font-size: 24px;
-            margin-bottom: 20px;
-            text-align: center;
+        .message-item.fade-out {
+            opacity: 0;
+            transform: translateY(-20px);
+        }
+
+        .message-text {
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .message-time {
+            color: #87CEEB;
+        }
+
+        .message-champion {
+            color: #FFD700;
+        }
+
+        .message-spotted {
+            color: #4CAF50;
+        }
+
+        .message-missing {
+            color: #FF6B6B;
         }
 
         #devtools {
@@ -78,6 +81,7 @@
             border: none;
             border-radius: 5px;
             cursor: pointer;
+            margin-top: auto;
         }
 
         #devtools:hover {
@@ -88,25 +92,166 @@
 </head>
 
 <body>
-    <div id="title-bar">
-        <div class="title">OSR Overlay Window</div>
-        <div class="buttons">
-            <div class="button" id="close">&#x2715;</div>
-        </div>
-    </div>
-    
     <div id="content">
-        <div id="size-display">
-            GLHF!
+        <div id="connection-status">
+            Connecting to WebSocket...
         </div>
-        <button id="devtools">Open DevTools</button>
+        <div id="message-queue"></div>
     </div>
 
     <script>
         const {
             ipcRenderer,
         } = window.require('electron');
+
+        // WebSocket connection
+        let ws = null;
+        let reconnectInterval = null;
+        const wsUrl = 'ws://localhost:8080';
+        
+        // Message queue system
+        let messageQueue = [];
+        const MAX_QUEUE_SIZE = 5; // Maximum number of messages to display at once
+
+        function connectWebSocket() {
+            try {
+                ws = new WebSocket(wsUrl);
+                
+                ws.onopen = function(event) {
+                    console.log('WebSocket connected to', wsUrl);
+                    document.getElementById('connection-status').textContent = 'Connected to WebSocket';
+                    document.getElementById('connection-status').style.color = '#4CAF50';
+                    
+                    // Clear any reconnection attempts
+                    if (reconnectInterval) {
+                        clearInterval(reconnectInterval);
+                        reconnectInterval = null;
+                    }
+                };
+
+                ws.onmessage = function(event) {
+                    console.log('WebSocket message received:', event.data);
+                    try {
+                        const data = JSON.parse(event.data);
+                        // Add message to queue
+                        addMessageToQueue(data);
+                    } catch (e) {
+                        console.error('Failed to parse JSON message:', e);
+                    }
+                };
+
+                ws.onclose = function(event) {
+                    console.log('WebSocket connection closed:', event.code, event.reason);
+                    document.getElementById('connection-status').textContent = 'WebSocket disconnected';
+                    document.getElementById('connection-status').style.color = '#FF6B6B';
+                    
+                    // Attempt to reconnect every 3 seconds
+                    if (!reconnectInterval) {
+                        reconnectInterval = setInterval(() => {
+                            console.log('Attempting to reconnect...');
+                            connectWebSocket();
+                        }, 3000);
+                    }
+                };
+
+                ws.onerror = function(error) {
+                    console.error('WebSocket error:', error);
+                    document.getElementById('connection-status').textContent = 'WebSocket error';
+                    document.getElementById('connection-status').style.color = '#FF6B6B';
+                };
+
+            } catch (error) {
+                console.error('Failed to create WebSocket connection:', error);
+                document.getElementById('connection-status').textContent = 'Failed to connect';
+                document.getElementById('connection-status').style.color = '#FF6B6B';
+            }
+        }
+
+        function addMessageToQueue(data) {
+            // Create message element
+            const messageElement = createMessageElement(data);
+            const queueContainer = document.getElementById('message-queue');
+            
+            // Add to the beginning of the queue
+            queueContainer.insertBefore(messageElement, queueContainer.firstChild);
+            
+            // Remove oldest message if queue is too long
+            if (queueContainer.children.length > MAX_QUEUE_SIZE) {
+                const oldestMessage = queueContainer.lastElementChild;
+                if (oldestMessage) {
+                    removeMessageWithAnimation(oldestMessage);
+                }
+            }
+            
+            // Set timeout to remove message after 2 seconds
+            setTimeout(() => {
+                if (messageElement.parentNode) {
+                    removeMessageWithAnimation(messageElement);
+                }
+            }, 3000);
+        }
+
+                function createMessageElement(data) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message-item';
+            
+            // Format timestamp to HH:MM:SS
+            const timestamp = new Date(parseInt(data.timestamp) / 1000000).toLocaleTimeString('en-US', {
+                hour12: false,
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            });
+            
+            // Determine status text and color
+            const status = data.status || 'unknown';
+            const isSpotted = status.toLowerCase().includes('spot') || status.toLowerCase().includes('alive') || status.toLowerCase().includes('seen');
+            const statusText = isSpotted ? 'spotted' : 'missing';
+            const statusClass = isSpotted ? 'message-spotted' : 'message-missing';
+            
+            messageDiv.innerHTML = `
+                <div class="message-text">
+                    <span class="message-time">${timestamp}</span>: 
+                    <span class="message-champion">${data.champion || 'Unknown'}</span> is 
+                    <span class="${statusClass}">${statusText}</span>!
+                </div>
+            `;
+            
+            return messageDiv;
+        }
+
+        function removeMessageWithAnimation(element) {
+            element.classList.add('fade-out');
+            setTimeout(() => {
+                if (element.parentNode) {
+                    element.parentNode.removeChild(element);
+                }
+            }, 300); // Wait for animation to complete
+        }
+
+        // Function to send data through WebSocket
+        function sendWebSocketMessage(message) {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify(message));
+                console.log('Sent message:', message);
+            } else {
+                console.log('WebSocket not connected');
+            }
+        }
+
+        // Initialize WebSocket connection when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            connectWebSocket();
+        });
+
+        // Clean up WebSocket connection when window is closed
+        window.addEventListener('beforeunload', function() {
+            if (reconnectInterval) {
+                clearInterval(reconnectInterval);
+            }
+            if (ws) {
+                ws.close();
+            }
+        });
     </script>
 </body>
-
-</html>

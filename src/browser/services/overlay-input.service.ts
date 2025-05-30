@@ -104,7 +104,7 @@ export class OverlayInputService {
       height: height,
       width: width,
       show: true,
-      passthrough: PassthroughType.PassThrough,
+      passthrough: PassthroughType.NoPassThrough,
       zOrder: ZOrderType.BottomMost,
       transparent: true,
       resizable: false,
@@ -113,6 +113,7 @@ export class OverlayInputService {
         contextIsolation: false,
         devTools: true,
       },
+      opacity: 0.3,
     };
 
     this.exclusiveModeBackgroundWindow = await this.overlayApi.createWindow(

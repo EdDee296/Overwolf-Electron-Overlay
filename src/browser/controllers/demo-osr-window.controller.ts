@@ -33,7 +33,7 @@ export class DemoOSRWindowController {
     
     // Calculate position: right edge, vertically centered
     const windowWidth = 384;
-    const windowHeight = 336;
+    const windowHeight = 536;
     const x = screenWidth - windowWidth + 385; // Right edge
     const y = Math.floor((screenHeight - windowHeight) / 2) + 110; // Vertically centered
 
@@ -45,6 +45,7 @@ export class DemoOSRWindowController {
       show: true,
       transparent: true,
       resizable: false, 
+      passthrough: PassthroughType.PassThrough,
       webPreferences: {
         devTools: showDevTools,
         nodeIntegration: true,
