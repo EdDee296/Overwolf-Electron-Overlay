@@ -188,7 +188,7 @@
                 if (messageElement.parentNode) {
                     removeMessageWithAnimation(messageElement);
                 }
-            }, 3000);
+            }, 3800);
         }
 
                 function createMessageElement(data) {
@@ -208,12 +208,13 @@
             const isSpotted = status.toLowerCase().includes('spot') || status.toLowerCase().includes('alive') || status.toLowerCase().includes('seen');
             const statusText = isSpotted ? 'spotted' : 'missing';
             const statusClass = isSpotted ? 'message-spotted' : 'message-missing';
+            const position = (data.position || 'unknown').toLowerCase();
             
             messageDiv.innerHTML = `
                 <div class="message-text">
                     <span class="message-time">${timestamp}</span>: 
                     <span class="message-champion">${data.champion || 'Unknown'}</span> is 
-                    <span class="${statusClass}">${statusText}</span>!
+                    <span class="${statusClass}">${statusText}</span> at ${position}!
                 </div>
             `;
             
